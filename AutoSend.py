@@ -4,13 +4,15 @@ import pandas as pd
 import os
 import time
 from email.message import EmailMessage
+from datetime import datetime
+import parsedatetime as pdt
 
 SEND = False
 
 def auto_reply():
 
-    commands = ['Email', 'Text', 'Calendar', 'Research', 'Reminder']
-    commands2 = ['add', 'clear', 'list']
+
+    commands = ['add', 'clear', 'show','reminder']
     user,pswd = 'lifeupdate.msg@gmail.com', 'rvqeiqxcoftltxgg'
 
     with MailBox('imap.gmail.com').login(user, pswd) as mailbox:
@@ -21,24 +23,26 @@ def auto_reply():
         return False
 
 
-
     # ----- now for the meat of it -------
     for message,sender in zip([t.decode('utf-8') for t in texts],[s.split('@')[0] for s in senders]):
-
-        exists = os.path.exists(f'{sender}')
+        exists = os.path.exists(f'users/{sender}')
         if not exists:
             # Create a new directory because it does not exist
-            os.makedirs(f'{sender}')
+            os.makedirs(f'users/{sender}')
 
         split_msg = message.split(' ')
-        cmd,cmd2 = split_msg[0],(split_msg[1] if split_msg[1] in commands2 else None)
-        content = ' '.join(split_msg[1:]) if len(split_msg) > 1 else ''
-        print(cmd, '\n',cmd2)
+        list_name,cmd = split_msg[0],(split_msg[1] if split_msg[1] in commands else None)
+        content = ' '.join(split_msg[2:]) if len(split_msg) > 1 else ''
+        print(list_name, '\n',cmd)
         # process and create message here
-        add(sender,'Email','email this person')
-        clear(sender,'Email')
-        response = f'sent {time.ctime()}'
+
+
+
+        response = globals()[cmd](sender,list_name,content)
+        print('response: ',response)
         # send message
+
+
         if SEND:
             msg = EmailMessage()
 
@@ -59,14 +63,41 @@ def auto_reply():
 
 
 def add(directory, list_name,content):
-    with open(f'{directory}/{list_name.lower()}.txt','a+') as file:
+    with open(f'users/{directory}/{list_name.lower()}.txt','a+') as file:
         file.write(f'\n{content}')
         file.close()
+    return None
 
-def clear(directory,list_name):
-    with open(f'{directory}/{list_name.lower()}.txt', 'w+') as file:
+def clear(directory,list_name,*args):
+    with open(f'users/{directory}/{list_name.lower()}.txt', 'w+') as file:
         file.write('')
         file.close()
+    return None
+
+def show(directory,list_name,*args):
+    with open(f'users/{directory}/{list_name.lower()}.txt', 'r') as file:
+        msg = file.read()
+        file.close()
+    return msg
+
+def reminder(directory,command,phrase):
+    cal = pdt.Calendar()
+    now = datetime.now()
+    dt = phrase.split(':')[0]
+    to_remind = phrase.split(':')[1]
+    with open(f'users/{directory}/reminders.txt','a+') as file:
+        remind_time = cal.parseDT(dt, now)[0]
+
+        if command == 'add':
+            content = f'{to_remind} @ {remind_time}'
+            file.write(f'\n{content}')
+
+        if command == 'clear':
+            file.truncate(0)
+
+        if command == 'show':
+            msg = file.read()
+            return msg
 
 
 

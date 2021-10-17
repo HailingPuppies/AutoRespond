@@ -1,7 +1,9 @@
-import imaplib
-from imap_tools import MailBox, A
+from datetime import datetime
+import parsedatetime as pdt # $ pip install parsedatetime
 
-with MailBox('imap.gmail.com').login('lifeupdate.msg@gmail.com', 'rvqeiqxcoftltxgg') as mailbox:
-    item = [att[0].payload for att in [msg.attachments for msg in mailbox.fetch(A(seen=False), mark_seen=False)]]
-
-print(len(item))
+cal = pdt.Calendar()
+now = datetime.now()
+print("now: %s" % now)
+for time_string in ["tomorrow at 6am", "next moday at noon",
+                    "2 min ago", "3 weeks ago", "1 month ago"]:
+   print("%s:\t%s" % (time_string, cal.parseDT(time_string, now)[0]))
